@@ -13,8 +13,8 @@ from telegram.ext import (
 
 MAIL_TM_API = "https://api.mail.tm"
 user_sessions = {}
-ADMIN_IDS = [123456789]  # Replace with your Telegram user ID
-REQUIRED_CHANNEL = "@YourChannelUsername"
+ADMIN_IDS = [1188483395]  # Replace with your Telegram user ID
+REQUIRED_CHANNEL = "@tamastore19"
 
 def random_str(length=10):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
@@ -167,7 +167,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Message sent to {count} users.")
 
 def main():
-    BOT_TOKEN = "8271421272:AAHDcwdsveSmwKVXvqAHn4VpdKSpXH37cG4"
+    BOT_TOKEN = "5391771268:AAEhgFIWqPRD16fQ2fkmgI8FBH2dYwLaFe4"
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -187,3 +187,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
