@@ -85,9 +85,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ... (Sisanya dari tamatemp.py) ...
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if not await check_membership(user_id, context):
-        return await update.message.reply_text(f"📢 Please join {REQUIRED_CHANNEL} first.")
-
+    
     username = random_str()
     password = random_str()
 
@@ -209,5 +207,6 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
