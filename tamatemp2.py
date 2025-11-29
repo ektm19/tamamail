@@ -83,6 +83,107 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # [Fungsi new_email, inbox, delete_email, info, stats, broadcast lainnya tetap sama]
 # ... (Sisanya dari tamatemp.py) ...
+async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(f"📢 Please join {REQUIRED_CHANNEL} first.")
+
+    username = random_str()
+    password = random_str()
+
+    # Get domain
+    domains_resp = requests.get(f"{MAIL_TM_API}/domains")
+    if domains_resp.status_code != 200:
+        return await update.message.reply_text("❌ Failed to fetch mail domains.")
+    domain = domains_resp.json()["hydra:member"][0]["domain"]
+    email = f"{username}@{domain}"
+
+    # Create account
+    create_resp = requests.post(f"{MAIL_TM_API}/accounts", json={"address": email, "password": password})
+    if create_resp.status_code not in [200, 201]:
+        return await update.message.reply_text("❌ Failed to create email.")
+
+    # Auth token
+    token_resp = requests.post(f"{MAIL_TM_API}/token", json={"address": email, "password": password})
+    if token_resp.status_code != 200:
+        return await update.message.reply_text("❌ Failed to authenticate.")
+
+    token = token_resp.json()["token"]
+    user_sessions[user_id] = {
+        "email": email,
+        "password": password,
+        "token": token
+    }
+
+    await update.message.reply_text(f"✅ Your temp email:\n📧 `{email}`", parse_mode="Markdown")
+
+async def inbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    session = user_sessions.get(user_id)
+    if not session:
+        return await update.message.reply_text("ℹ️ Use /new to create a temporary email first.")
+
+    headers = {"Authorization": f"Bearer {session['token']}"}
+    r = requests.get(f"{MAIL_TM_API}/messages", headers=headers)
+    data = r.json()
+    if not data["hydra:member"]:
+        return await update.message.reply_text("📭 Inbox is empty.")
+
+    for m in data["hydra:member"][:3]:
+        msg_id = m["id"]
+        detail_resp = requests.get(f"{MAIL_TM_API}/messages/{msg_id}", headers=headers)
+        if detail_resp.status_code != 200:
+            continue
+
+        msg_detail = detail_resp.json()
+        sender = msg_detail["from"]["address"]
+        subject = msg_detail["subject"] or "(no subject)"
+        body = msg_detail.get("text", "(No content)")
+
+        text = (
+            f"*From:* `{sender}`\n"
+            f"*Subject:* _{subject}_\n\n"
+            f"*Message:*\n"
+            f"\n{body.strip()[:1000]}\n"
+        )
+        await update.message.reply_text(text, parse_mode="Markdown")
+
+async def delete_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id in user_sessions:
+        user_sessions.pop(user_id)
+        await update.message.reply_text("🗑️ Your temp email has been deleted.")
+    else:
+        await update.message.reply_text("ℹ️ No temp email to delete.")
+
+async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    session = user_sessions.get(user_id)
+    if session:
+        email = session['email']
+        await update.message.reply_text(f"📧 Your current temp email:\n`{email}`", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("ℹ️ You don't have a temp email yet.")
+
+# Admin Commands
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        return
+    total_users = len(user_sessions)
+    await update.message.reply_text(f"👤 Total active users: {total_users}")
+
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        return
+    msg = ' '.join(context.args)
+    count = 0
+    for user_id in user_sessions:
+        try:
+            await context.bot.send_message(chat_id=user_id, text=msg)
+            count += 1
+        except:
+            continue
+    await update.message.reply_text(f"✅ Message sent to {count} users.")
 
 # ⚠️ Anda harus menambahkan CallbackQueryHandler di fungsi main()
 
@@ -108,4 +209,5 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
