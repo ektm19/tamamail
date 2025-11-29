@@ -1,23 +1,32 @@
 import requests
 import random
 import string
-from telegram import Update
+# ⚠️ Tambahan: Import untuk Inline Buttons
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup 
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
     MessageHandler,
-    filters
+    filters,
+    # ⚠️ Tambahan: Import untuk CallbackQueryHandler
+    CallbackQueryHandler 
 )
 
 MAIL_TM_API = "https://api.mail.tm"
 user_sessions = {}
-ADMIN_IDS = [1188483395]  # Replace with your Telegram user ID
+ADMIN_IDS = [123456789]  # Replace with your Telegram user ID
 REQUIRED_CHANNEL = "@YourChannelUsername"
 
 def random_str(length=10):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
+async def check_membership(user_id, context):
+    try:
+        member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
+        return member.status in ["member", "creator", "administrator"]
+    except:
+        return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -26,19 +35,40 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
         )
 
+    # 🧱 Membuat Inline Keyboard (Menu yang diminta: /new, /inbox, /delete, /info)
+    keyboard = [
+        [
+            InlineKeyboardButton("📧 New Email", callback_data="/new"),
+            InlineKeyboardButton("📥 Inbox", callback_data="/inbox")
+        ],
+        [
+            InlineKeyboardButton("🗑️ Delete Email", callback_data="/delete"),
+            InlineKeyboardButton("ℹ️ Info", callback_data="/info")
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # 🧱 Akhir Pembuatan Inline Keyboard
+
     msg = (
         "👋 *Welcome to TempMail Bot!*\n\n"
-        "You can use the following commands:\n\n"
+        "You can use the following commands or the buttons below:\n\n"
         "📧 `/new` – Create a new temporary email\n"
         "📥 `/inbox` – View inbox messages\n"
         "🗑️ `/delete` – Delete your current temp email\n"
         "ℹ️ `/info` – Show your current email session\n"
     )
-    await update.message.reply_text(msg, parse_mode="Markdown")
+    # 💬 Mengirim pesan dengan Inline Keyboard
+    await update.message.reply_text(
+        msg, 
+        parse_mode="Markdown",
+        reply_markup=reply_markup # ⚠️ Tambahan: Mengirim keyboard
+    )
 
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-  
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(f"📢 Please join {REQUIRED_CHANNEL} first.")
+
     username = random_str()
     password = random_str()
 
@@ -115,6 +145,26 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"📧 Your current temp email:\n`{email}`", parse_mode="Markdown")
     else:
         await update.message.reply_text("ℹ️ You don't have a temp email yet.")
+        
+# ⚙️ Tambahan: Callback Handler untuk Inline Button
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer() # Harus dipanggil untuk menghentikan loading di tombol
+
+    command = query.data
+    
+    # Panggil fungsi command yang sesuai
+    if command == "/new":
+        # Untuk kasus CallbackQuery, kita menggunakan query.message untuk membalas,
+        # tetapi fungsi command handler yang ada menggunakan Update.
+        # Kita bisa memanggil langsung fungsi yang sama karena logic utamanya masih valid.
+        await new_email(update, context)
+    elif command == "/inbox":
+        await inbox(update, context)
+    elif command == "/delete":
+        await delete_email(update, context)
+    elif command == "/info":
+        await info(update, context)
 
 # Admin Commands
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -147,6 +197,9 @@ def main():
     app.add_handler(CommandHandler("info", info))
     app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CommandHandler("broadcast", broadcast))
+
+    # ⚠️ Handler Baru untuk Tombol Inline ditambahkan
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     print("🤖 TempMail Bot is running...")
     app.run_polling()
