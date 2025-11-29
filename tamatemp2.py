@@ -30,10 +30,7 @@ async def check_membership(user_id, context):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    if not await check_membership(user_id, context):
-        return await update.message.reply_text(
-            f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
-        )
+   
 
     # 🧱 Membuat Inline Keyboard (Menu yang diminta: /new, /inbox, /delete, /info)
     keyboard = [
@@ -206,3 +203,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
