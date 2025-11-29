@@ -19,11 +19,20 @@ REQUIRED_CHANNEL = "@YourChannelUsername"
 def random_str(length=10):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
-
+async def check_membership(user_id, context):
+    try:
+        member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
+        return member.status in ["member", "creator", "administrator"]
+    except:
+        return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(
+            f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
+        )
+
     # 🧱 Membuat Reply Keyboard (Tombol-tombol akan mengirimkan perintah /command)
     keyboard = [
         [
@@ -57,7 +66,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-   
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(f"📢 Please join {REQUIRED_CHANNEL} first.")
+
     username = random_str()
     password = random_str()
 
@@ -170,4 +181,3 @@ def main():
     app.add_handler(CommandHandler("info", info))
     app.add_handler(CommandHandler("stats", stats))
     app.add
-
