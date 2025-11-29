@@ -1,75 +1,44 @@
 import requests
 import random
 import string
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
     MessageHandler,
-    filters,
-    CallbackQueryHandler
+    filters
 )
 
 MAIL_TM_API = "https://api.mail.tm"
 user_sessions = {}
 ADMIN_IDS = [1188483395]  # Replace with your Telegram user ID
-# REQUIRED_CHANNEL = "@YourChannelUsername" # 🗑️ Dihapus
+REQUIRED_CHANNEL = "@YourChannelUsername"
 
 def random_str(length=10):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
-# 🗑️ Fungsi check_membership Dihapus
-# async def check_membership(user_id, context):
-#     try:
-#         member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
-#         return member.status in ["member", "creator", "administrator"]
-#     except:
-#         return False
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # 🗑️ Pengecekan keanggotaan Dihapus
-    # user_id = update.effective_user.id
-    # if not await check_membership(user_id, context):
-    #     return await update.message.reply_text(
-    #         f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
-    #     )
-
-    # 🧱 Membuat Inline Keyboard
-    keyboard = [
-        [
-            InlineKeyboardButton("📧 New Email", callback_data="/new"),
-            InlineKeyboardButton("📥 Inbox", callback_data="/inbox")
-        ],
-        [
-            InlineKeyboardButton("🗑️ Delete Email", callback_data="/delete"),
-            InlineKeyboardButton("ℹ️ Info", callback_data="/info")
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    # 🧱 Akhir Pembuatan Inline Keyboard
+    user_id = update.effective_user.id
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(
+            f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
+        )
 
     msg = (
         "👋 *Welcome to TempMail Bot!*\n\n"
-        "You can use the following commands or the buttons below:\n\n"
+        "You can use the following commands:\n\n"
         "📧 `/new` – Create a new temporary email\n"
         "📥 `/inbox` – View inbox messages\n"
         "🗑️ `/delete` – Delete your current temp email\n"
         "ℹ️ `/info` – Show your current email session\n"
     )
-    # 💬 Mengirim pesan dengan Inline Keyboard
-    await update.message.reply_text(
-        msg,
-        parse_mode="Markdown",
-        reply_markup=reply_markup
-    )
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    # 🗑️ Pengecekan keanggotaan Dihapus
-    # if not await check_membership(user_id, context):
-    #     return await update.message.reply_text(f"📢 Please join {REQUIRED_CHANNEL} first.")
-
+  
     username = random_str()
     password = random_str()
 
@@ -147,41 +116,6 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("ℹ️ You don't have a temp email yet.")
 
-# ⚙️ Callback Handler untuk Inline Button
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    command = query.data
-
-    # Membuat objek Update palsu yang berisi Message dari CallbackQuery
-    # Ini diperlukan karena fungsi command handler Anda dirancang untuk menerima Update dari Message
-    # Kita menggunakan query.edit_message_text untuk "membalas" query tersebut.
-    # Namun untuk menjalankan logic command (/new, /inbox, dll), kita perlu memastikan Update
-    # memiliki .message yang benar.
-    
-    # ⚠️ Catatan: Dalam telegram-bot, saat menangani CallbackQuery,
-    # kita harus menggunakan metode balasan yang merujuk pada `query.message`.
-    # Agar fungsi command yang sudah ada tetap bekerja, kita perlu sedikit penyesuaian 
-    # pada objek Update/Context yang diteruskan, atau memanggil fungsi yang ditujukan 
-    # untuk menanggapi CallbackQuery secara spesifik.
-
-    # Untuk kesederhanaan, kita akan panggil fungsi command handler yang ada, 
-    # meskipun ini bukan cara paling bersih untuk menangani CallbackQuery di library ini,
-    # karena fungsi command handler akan mencoba menggunakan update.message.
-    # Namun, karena fungsi command handler Anda hanya menggunakan update.effective_user.id
-    # dan context.bot.send_message/update.message.reply_text (yang berfungsi)
-    # kita bisa memanggilnya secara langsung.
-    
-    if command == "/new":
-        await new_email(update, context)
-    elif command == "/inbox":
-        await inbox(update, context)
-    elif command == "/delete":
-        await delete_email(update, context)
-    elif command == "/info":
-        await info(update, context)
-
 # Admin Commands
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
@@ -213,9 +147,6 @@ def main():
     app.add_handler(CommandHandler("info", info))
     app.add_handler(CommandHandler("stats", stats))
     app.add_handler(CommandHandler("broadcast", broadcast))
-
-    # Handler untuk Tombol Inline
-    app.add_handler(CallbackQueryHandler(button_handler))
 
     print("🤖 TempMail Bot is running...")
     app.run_polling()
