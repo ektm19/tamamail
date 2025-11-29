@@ -1,16 +1,14 @@
 import requests
 import random
 import string
-# ⚠️ Tambahan: Import untuk Inline Buttons
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup 
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup # ⚠️ Perubahan: Import untuk Reply Keyboard
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
     MessageHandler,
     filters,
-    # ⚠️ Tambahan: Import untuk CallbackQueryHandler
-    CallbackQueryHandler 
+    CallbackQueryHandler # Dibiarkan, meskipun tidak dipakai untuk Reply Keyboard, untuk jaga-jaga
 )
 
 MAIL_TM_API = "https://api.mail.tm"
@@ -30,35 +28,40 @@ async def check_membership(user_id, context):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-   
+    if not await check_membership(user_id, context):
+        return await update.message.reply_text(
+            f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
+        )
 
-    # 🧱 Membuat Inline Keyboard (Menu yang diminta: /new, /inbox, /delete, /info)
+    # 🧱 Membuat Reply Keyboard (Tombol-tombol akan mengirimkan perintah /command)
     keyboard = [
         [
-            InlineKeyboardButton("📧 New Email", callback_data="/new"),
-            InlineKeyboardButton("📥 Inbox", callback_data="/inbox")
+            KeyboardButton("/new"),
+            KeyboardButton("/inbox")
         ],
         [
-            InlineKeyboardButton("🗑️ Delete Email", callback_data="/delete"),
-            InlineKeyboardButton("ℹ️ Info", callback_data="/info")
+            KeyboardButton("/delete"),
+            KeyboardButton("/info")
         ]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    # 🧱 Akhir Pembuatan Inline Keyboard
+    # Resize_keyboard=True agar tombol menyesuaikan ukuran layar
+    # One_time_keyboard=False agar keyboard tetap terlihat
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
+    # 🧱 Akhir Pembuatan Reply Keyboard
 
     msg = (
         "👋 *Welcome to TempMail Bot!*\n\n"
-        "You can use the following commands or the buttons below:\n\n"
+        "You can use the following commands or the keyboard below:\n\n"
         "📧 `/new` – Create a new temporary email\n"
         "📥 `/inbox` – View inbox messages\n"
         "🗑️ `/delete` – Delete your current temp email\n"
         "ℹ️ `/info` – Show your current email session\n"
     )
-    # 💬 Mengirim pesan dengan Inline Keyboard
+    # 💬 Mengirim pesan dengan Reply Keyboard
     await update.message.reply_text(
         msg, 
         parse_mode="Markdown",
-        reply_markup=reply_markup # ⚠️ Tambahan: Mengirim keyboard
+        reply_markup=reply_markup # ⚠️ Perubahan: Mengirim Reply Keyboard
     )
 
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -143,25 +146,8 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("ℹ️ You don't have a temp email yet.")
         
-# ⚙️ Tambahan: Callback Handler untuk Inline Button
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer() # Harus dipanggil untuk menghentikan loading di tombol
-
-    command = query.data
-    
-    # Panggil fungsi command yang sesuai
-    if command == "/new":
-        # Untuk kasus CallbackQuery, kita menggunakan query.message untuk membalas,
-        # tetapi fungsi command handler yang ada menggunakan Update.
-        # Kita bisa memanggil langsung fungsi yang sama karena logic utamanya masih valid.
-        await new_email(update, context)
-    elif command == "/inbox":
-        await inbox(update, context)
-    elif command == "/delete":
-        await delete_email(update, context)
-    elif command == "/info":
-        await info(update, context)
+# 🗑️ Fungsi button_handler untuk Inline Keyboard dihapus/tidak digunakan
+# Karena kita menggunakan Reply Keyboard, klik tombol otomatis mengirimkan perintah /command
 
 # Admin Commands
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -184,23 +170,14 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Message sent to {count} users.")
 
 def main():
-    BOT_TOKEN = "8271421272:AAHDcwdsveSmwKVXvqAHn4VpdKSpXH37cG4"  # Replace with your bot token
+    BOT_TOKEN = "8271421272:AAHDcwdsveSmwKVXvqAHn4VpdKSpXH37cG4"
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    # Command Handlers tetap sama karena Reply Keyboard mengirimkan perintah /command
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("new", new_email))
     app.add_handler(CommandHandler("inbox", inbox))
     app.add_handler(CommandHandler("delete", delete_email))
     app.add_handler(CommandHandler("info", info))
     app.add_handler(CommandHandler("stats", stats))
-    app.add_handler(CommandHandler("broadcast", broadcast))
-
-    # ⚠️ Handler Baru untuk Tombol Inline ditambahkan
-    app.add_handler(CallbackQueryHandler(button_handler))
-
-    print("🤖 TempMail Bot is running...")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
-
+    app.add
