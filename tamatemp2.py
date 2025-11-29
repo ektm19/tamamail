@@ -12,7 +12,7 @@ from telegram.ext import (
 
 MAIL_TM_API = "https://api.mail.tm"
 user_sessions = {}
-ADMIN_IDS = [123456789]  # Replace with your Telegram user ID
+ADMIN_IDS = [1188483395]  # Replace with your Telegram user ID
 REQUIRED_CHANNEL = "@YourChannelUsername"
 
 def random_str(length=10):
@@ -87,7 +87,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ⚠️ Anda harus menambahkan CallbackQueryHandler di fungsi main()
 
 def main():
-    BOT_TOKEN = "YOUR_BOT_TOKEN"  # Replace with your bot token
+    BOT_TOKEN = "8271421272:AAHDcwdsveSmwKVXvqAHn4VpdKSpXH37cG4"  # Replace with your bot token
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Handlers untuk Command (tetap ada)
@@ -108,3 +108,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
