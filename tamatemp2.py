@@ -1,14 +1,14 @@
 import requests
 import random
 import string
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup # ⚠️ Perubahan: Import untuk Reply Keyboard
+# ⚠️ HANYA import yang dibutuhkan untuk Reply Keyboard dan Telegram Bot
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup 
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
     MessageHandler,
-    filters,
-    CallbackQueryHandler # Dibiarkan, meskipun tidak dipakai untuk Reply Keyboard, untuk jaga-jaga
+    filters
 )
 
 MAIL_TM_API = "https://api.mail.tm"
@@ -33,7 +33,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📢 Please join our channel first:\n{REQUIRED_CHANNEL}"
         )
 
-    # 🧱 Membuat Reply Keyboard (Tombol-tombol akan mengirimkan perintah /command)
+    # 🧱 Membuat Reply Keyboard
     keyboard = [
         [
             KeyboardButton("/new"),
@@ -44,8 +44,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             KeyboardButton("/info")
         ]
     ]
-    # Resize_keyboard=True agar tombol menyesuaikan ukuran layar
-    # One_time_keyboard=False agar keyboard tetap terlihat
+    # resize_keyboard=True agar tombol menyesuaikan ukuran layar
+    # one_time_keyboard=False agar keyboard tetap terlihat
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=False)
     # 🧱 Akhir Pembuatan Reply Keyboard
 
@@ -61,7 +61,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         msg, 
         parse_mode="Markdown",
-        reply_markup=reply_markup # ⚠️ Perubahan: Mengirim Reply Keyboard
+        reply_markup=reply_markup
     )
 
 async def new_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -146,9 +146,6 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("ℹ️ You don't have a temp email yet.")
         
-# 🗑️ Fungsi button_handler untuk Inline Keyboard dihapus/tidak digunakan
-# Karena kita menggunakan Reply Keyboard, klik tombol otomatis mengirimkan perintah /command
-
 # Admin Commands
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
@@ -173,11 +170,20 @@ def main():
     BOT_TOKEN = "8271421272:AAHDcwdsveSmwKVXvqAHn4VpdKSpXH37cG4"
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Command Handlers tetap sama karena Reply Keyboard mengirimkan perintah /command
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("new", new_email))
     app.add_handler(CommandHandler("inbox", inbox))
     app.add_handler(CommandHandler("delete", delete_email))
     app.add_handler(CommandHandler("info", info))
     app.add_handler(CommandHandler("stats", stats))
-    app.add
+    app.add_handler(CommandHandler("broadcast", broadcast))
+
+    # Pastikan tidak ada CallbackQueryHandler di sini
+    # Jika Anda ingin pengguna bisa menyembunyikan keyboard, Anda bisa tambahkan:
+    # app.add_handler(CommandHandler("hide", hide_keyboard)) 
+
+    print("🤖 TempMail Bot is running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
